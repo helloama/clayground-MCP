@@ -53,17 +53,34 @@ The same settings can come from the environment as `CLAYGROUND_URL`, `CLAYGROUND
 
 | Tool                | What it does                                                                                                        |
 | ------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `sculpt_manual`     | The manual, by topic (`start`, `shape`, `sweep`, `layer`, `detail`, `seeing`, `recipes`, `limits`, `all`).          |
+| `sculpt_manual`     | The manual, by topic (`card`, `shape`, `sweep`, `layer`, `detail`, `seeing`, `recipes`, `limits`, `all`).           |
+| `sculpt_recipes`    | Lists the recipes (vase, mug, planter, fella), or shows one with every setting's range, unit and default.           |
 | `sculpt_state`      | Layers, camera, triangles, undo depth.                                                                              |
 | `sculpt_do`         | Run ops, then optionally look, in one call. A refused op names the field and the allowed range and changes nothing. |
 | `sculpt_look`       | Pictures of the clay as color, normals, depth, layers or silhouette, from any views, or closed in on a spot.        |
 | `sculpt_critique`   | Reads the surface: how much of the clay shows form at this scale, the biggest smooth stretches, and a heat map.     |
+| `sculpt_check`      | Will it print? PASS or FAIL for each question a slicer asks, with one fix and a place for each FAIL.                |
 | `sculpt_compare`    | Scores the silhouette against a picture and draws where it differs.                                                 |
 | `sculpt_checkpoint` | Keep, list or restore a named copy of the whole sculpt.                                                             |
+| `sculpt_status`     | The notebook: goal, what was done, what is left to check. After a restart, `resume: true` rebuilds the sculpt.      |
 | `sculpt_script`     | Run your own code in the page, with `clayground` in scope.                                                          |
 | `sculpt_export`     | GLB, OBJ, STL, PNG or `.clayweb` into the output folder.                                                            |
 
 What the ops can do, in short: one `texture` op lays hundreds of marks (scales, plates, studs, fur, wrinkles, pores) as a single undo step. `array` repeats a shape along a ring, a line, a path or over the skin. `loft` stretches fins, petals and ears. `refine` moves one part of a model to a finer layer so it can take two to four times the detail. `surface` and `nearest` tell the agent where the skin is without a picture. The whole manual is plain text at [clayvr.com/llms-full.txt](https://www.clayvr.com/llms-full.txt).
+
+## Recipes, the print check and the notebook
+
+These three are for small models, short contexts and anyone who wants a good first result without writing geometry.
+
+A recipe is one op that builds a whole object from a few numbers: `{ "do": "recipe", "name": "mug", "height": 0.8 }`. Every setting has a range, a unit and a default, a wrong one is refused with the allowed range, and the object is made of ordinary ops, so the agent can look at it and keep going by hand. Each recipe's defaults and examples are built in the tests and pass the print check.
+
+`sculpt_check` asks what a slicer would. Is the surface closed. Is it one body. Are there sealed hollows. Does it stand. Is there a flat first layer. Is any part thinner than 1.2 mm. Does too much hang out over nothing. Each question comes back as `PASS` or `FAIL`, and each `FAIL` says what to change and where.
+
+Every answer ends with a `Next:` line, one thing to try, worked out from what has been done since the last look, critique and check. An agent with no plan of its own can follow it.
+
+The notebook is `journal.json` in the output folder. It keeps the goal and every change that worked, in order, and it is rewritten after each one. If the bridge restarts, the new browser has no clay; the first answer says a saved run is waiting, and `sculpt_status` with `resume: true` rebuilds it. Use one output folder (`--out`) for each agent.
+
+The studio opens with a ball of clay. The bridge clears it before the first op (it says so), so a mug starts from nothing; send `{ "do": "new", "detail": 64 }` yourself to choose how fine the clay is.
 
 ## Without an MCP client
 
