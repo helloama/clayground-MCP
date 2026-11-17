@@ -8,9 +8,13 @@
  * It opens the studio (/sculpt) in a Chromium it controls and speaks to
  * window.clayground there (the manual is https://www.clayvr.com/llms-full.txt). Tools: read the manual,
  * look at the clay (color, normals, depth, layers, close-ups), change it with
- * ops and look again in one call, critique the work, score its shape against a
- * picture, keep and restore checkpoints, run your own code in the page, and
- * export files to a folder on this computer. Nothing is uploaded: the studio
+ * ops and look again in one call, build from tested recipes (vase, mug,
+ * planter, fella), critique the work, test whether it prints (PASS or FAIL
+ * with one fix each), score its shape against a picture, keep and restore
+ * checkpoints, run your own code in the page, and export files to a folder on
+ * this computer. Every answer ends with a "Next:" line, and a notebook in the
+ * output folder keeps the goal and every change that worked, so a run can be
+ * rebuilt after a restart (sculpt_status). Nothing is uploaded: the studio
  * runs in that browser. The door cannot publish, mint or sign in.
  *
  * Options (or the same in the environment, as CLAYGROUND_URL, _OUT, _CDP):
@@ -26,10 +30,12 @@
  */
 import { createInterface } from "node:readline";
 import { writeFileSync } from "node:fs";
+import { homedir } from "node:os";
 import { join } from "node:path";
 import { openStudio, pictureSource, bytesOf } from "./page.mjs";
+import { createJournal } from "./journal.mjs";
 
-const SERVER = { name: "clayground-studio", version: "2.0.0" };
+const SERVER = { name: "clayground-studio", version: "2.1.0" };
 const PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const args = process.argv.slice(2);
@@ -50,6 +56,13 @@ for (const k of Object.keys(config))
   if (config[k] === undefined) delete config[k];
 
 const log = (m) => process.stderr.write(`[clayground-mcp] ${m}\n`);
+
+/** The notebook sits with the pictures and exports (one agent per output folder). */
+const OUT =
+  config.out ??
+  process.env.CLAYGROUND_OUT ??
+  join(homedir(), "clayground-agent");
+const journal = createJournal(join(OUT, "journal.json"));
 
 /* ---------- the studio, opened on first use ---------- */
 
@@ -154,19 +167,54 @@ const LOOK = {
   },
 };
 
+/** The studio's state in a line, for the notebook's answers. */
+const brief = (st) => ({
+  triangles: st.triangles,
+  layers: st.layers?.map((l) => l.name),
+});
+
 /* ---------- the tools ---------- */
 
 const TOOLS = [
   {
     name: "sculpt_manual",
     description:
-      "Read how to sculpt in the Clayground studio. Start with no topic, then read 'detail' (scales, studs, fur, wrinkles, arrays, lofts) and 'seeing' (normals, critique, compare, checkpoints) before sculpting. Topics: coordinates, shape, sweep, spin, fill, brush, layer, detail, camera, seeing, geo, workflow, recipes, limits, all.",
+      "Read how to sculpt in the Clayground studio. Start with no topic (or 'card' if your context is short), then read 'detail' (scales, studs, fur, wrinkles, arrays, lofts) and 'seeing' (normals, critique, compare, checkpoints) before sculpting. Topics: card (a short loop for small models), coordinates, shape, sweep, spin, fill, brush, layer, detail, camera, seeing, geo, workflow, recipes, limits, all.",
     inputSchema: {
       type: "object",
       properties: { topic: { type: "string" } },
     },
     annotations: { readOnlyHint: true },
     run: async (s, { topic }) => ({ text: await s.call("help", topic) }),
+  },
+  {
+    name: "sculpt_recipes",
+    description:
+      "Tested recipes that make a whole object from a few numbers: vase, mug, planter, fella (a little designer-toy character). With no name it lists them; with a name it shows every setting with its range, unit and default, and examples. Build one with sculpt_do: { do: 'recipe', name: 'mug', height: 0.8 }. Each passes the print check with its defaults and examples, so start here, look, then change it by hand.",
+    inputSchema: {
+      type: "object",
+      properties: { name: { type: "string" } },
+    },
+    annotations: { readOnlyHint: true },
+    run: async (s, { name }) => {
+      const { recipes } = await s.call("recipes");
+      if (!name)
+        return {
+          recipes,
+          shown: recipes.map((r) => ({
+            name: r.name,
+            about: r.about,
+            settings: Object.keys(r.settings),
+          })),
+        };
+      const one = recipes.find((r) => r.name === name);
+      if (!one)
+        throw new Error(
+          `"${name}" is not a recipe; the recipes are ${recipes.map((r) => r.name).join(", ")}`,
+        );
+      return { recipes, shown: one };
+    },
+    show: ({ shown }) => shown,
   },
   {
     name: "sculpt_state",
@@ -179,7 +227,7 @@ const TOOLS = [
   {
     name: "sculpt_do",
     description:
-      "Change the sculpt with a list of operations, in order (shape, sweep, spin, fill, brush, layer, array, loft, texture, refine, camera, look, backdrop, reference, new, undo, redo, checkpoint, restore). Each is one undo step, except refine (finer clay for one part: several). A refused one stops the list and says which field was wrong; it changes nothing. Add `look` to get pictures after the change. Work in short runs and look between them.",
+      "Change the sculpt with a list of operations, in order (shape, sweep, spin, fill, brush, layer, array, loft, texture, refine, recipe, camera, look, backdrop, reference, new, undo, redo, checkpoint, restore). A `recipe` op builds a whole vase, mug, planter or fella from a few settings: { do: 'recipe', name: 'vase', height: 1.2 } (sculpt_recipes lists them). Each is one undo step, except refine and recipe (several). A refused one stops the list and says which field was wrong; it changes nothing. Add `look` to get pictures after the change. Work in short runs and look between them.",
     inputSchema: {
       type: "object",
       properties: {
@@ -280,6 +328,26 @@ const TOOLS = [
     run: (s, o) => s.call("critique", o),
   },
   {
+    name: "sculpt_check",
+    description:
+      "Will it print? The slicer's questions about the clay as it is (60 mm tall, as an export would be): is the surface closed, is it one body, are there sealed hollows, does it stand, is there a flat first layer, is any part thinner than 1.2 mm, does too much hang out over nothing. Answers PASS or FAIL for each, with one fix for each FAIL and where it is, then the one thing to do next. Run it when the form is done and again after each fix.",
+    inputSchema: { type: "object", properties: {} },
+    annotations: { readOnlyHint: true },
+    run: (s) => s.call("check"),
+    show: (a) => ({
+      text: [
+        ...(a.report?.lines ?? []),
+        `size ${(a.sizeMm ?? []).join(" x ")} mm` +
+          (a.thin?.length
+            ? `; thin at ${a.thin
+                .slice(0, 3)
+                .map((t) => `(${t.at.join(", ")}) mm`)
+                .join(", ")}`
+            : ""),
+      ].join("\n"),
+    }),
+  },
+  {
     name: "sculpt_compare",
     description:
       "Score the clay's shape against a picture: iou (1 is the same silhouette), which side has extra outline, and a red and blue difference picture. Both outlines are fitted to their own boxes, so only shape counts. `reference` is a file path or URL; leave it out to use the picture set with a `reference` op.",
@@ -320,6 +388,84 @@ const TOOLS = [
           ),
   },
   {
+    name: "sculpt_status",
+    description:
+      "The notebook: the goal, what was done (the last few calls), whether the clay has been looked at, critiqued and checked since it changed, the checkpoints, and what to do next. It is saved in the output folder after every change, so after the bridge restarts (a new browser has no clay) call it with resume: true to rebuild the sculpt from the saved steps. Set the goal in a sentence with `goal` so a later run knows what this was for. Cheap and read-only unless you pass `goal` or `resume`.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        goal: {
+          type: "string",
+          description: "What this sculpt is for, one sentence.",
+        },
+        resume: {
+          type: "boolean",
+          description:
+            "Rebuild the sculpt from the saved steps (the studio must be empty, or pass replace).",
+        },
+        replace: {
+          type: "boolean",
+          description:
+            "With resume: start over from the saved steps even if the studio has clay.",
+        },
+      },
+    },
+    run: async (s, { goal, resume, replace }) => {
+      if (typeof goal === "string" && goal.trim()) journal.setGoal(goal);
+      if (resume !== true)
+        return { ...journal.status(), studio: brief(await s.call("state")) };
+      const have = await s.call("state");
+      if (have.undo > 0 && replace !== true)
+        throw new Error(
+          `The studio already has work in it (${have.undo} undo steps, ${have.triangles} triangles). Pass replace: true to start over from the saved steps, or leave resume out to carry on from this clay.`,
+        );
+      const steps = journal.replay();
+      if (!steps.length) throw new Error("There is no saved run to rebuild.");
+      if (!journal.status().replayable)
+        throw new Error(
+          "The saved run is too long or has a script that was too long to keep, so it cannot be rebuilt exactly. Start again with { do: 'new' }.",
+        );
+      pending = false;
+      untouched = false;
+      if (!steps[0].ops?.some((o) => o?.do === "new"))
+        await s.run([{ do: "new" }]);
+      let n = 0;
+      for (const step of steps) {
+        n++;
+        let failed = null;
+        if (step.ops) {
+          const r = await s.run(
+            step.ops.map((op) =>
+              op?.do === "reference" && typeof op.src === "string"
+                ? { ...op, src: pictureSource(op.src) }
+                : op,
+            ),
+          );
+          if (!r.ok) failed = `${r.error} (op ${r.failedAt})`;
+        } else if (step.script) await s.script(step.script);
+        else if (step.checkpoint) await s.call("checkpoint", step.checkpoint);
+        else if (step.restore) await s.call("restore", step.restore);
+        if (failed)
+          return {
+            ok: false,
+            rebuilt: n - 1,
+            of: steps.length,
+            stoppedAt: n,
+            error: failed,
+            ...journal.status(),
+          };
+      }
+      journal.replayed();
+      return {
+        ok: true,
+        rebuilt: steps.length,
+        ops: journal.status().ops,
+        studio: brief(await s.call("state")),
+        ...journal.status(),
+      };
+    },
+  },
+  {
     name: "sculpt_script",
     description:
       "Run your own JavaScript in the studio page, where `clayground` is in scope (an async function body: use await and return a JSON-serializable value). For anything the other tools do not cover: clayground.surface({ ... }) for points on the skin, clayground.nearest, clayground.ray, clayground.geo helpers, loops that compute an op list from measurements. Any dataUrl in the answer becomes a picture.",
@@ -353,6 +499,12 @@ const TOOLS = [
 const send = (message) =>
   process.stdout.write(`${JSON.stringify({ jsonrpc: "2.0", ...message })}\n`);
 
+/** A saved run is waiting for this studio, which has had nothing done in it (the bridge was restarted). */
+let pending = false;
+let started = false;
+/** The studio is as it opened: with its starting ball of clay and nothing made yet. */
+let untouched = false;
+
 async function callTool(name, input) {
   const tool = TOOLS.find((t) => t.name === name);
   if (!tool)
@@ -360,19 +512,70 @@ async function callTool(name, input) {
   return alone(async () => {
     try {
       const s = await studio();
-      const answer = await tool.run(s, input ?? {});
-      if (
-        answer &&
-        typeof answer === "object" &&
-        typeof answer.text === "string" &&
-        Object.keys(answer).length === 1
-      )
-        return { content: [{ type: "text", text: answer.text }] };
-      return present(answer, s, name.replace(/^sculpt_/, ""));
+      const notes = [];
+      if (!started) {
+        started = true;
+        const have = await s.call("state").catch(() => null);
+        untouched = have?.undo === 0;
+        pending = untouched && journal.state.steps.length > 0;
+        if (pending && name !== "sculpt_status")
+          notes.push(
+            `A saved run is waiting: ${journal.describe()}. sculpt_status { resume: true } rebuilds it.`,
+          );
+      }
+      let given = input ?? {};
+      if (name === "sculpt_do" && Array.isArray(given.ops)) {
+        const fresh = given.ops.some((o) => o?.do === "new");
+        if (pending) {
+          // Never write over a saved run without being told to: starting with `new` is being told.
+          if (!fresh)
+            throw new Error(
+              `A saved run is waiting for this empty studio (${journal.describe()}). Call sculpt_status { resume: true } to carry on from it, or start your ops with { do: "new" } to begin again (the saved run is kept as a file).`,
+            );
+          notes.push(`The saved run was kept as ${journal.setAside()}.`);
+          pending = false;
+        } else if (untouched && !fresh && !config.cdp) {
+          // The studio opens with a ball of clay to build on; an agent almost never means that.
+          given = { ...given, ops: [{ do: "new" }, ...given.ops] };
+          notes.push(
+            "The studio opens with a ball of clay, so the first op started from a clean sculpt ({ do: 'new' } first; send your own to choose the detail).",
+          );
+        }
+        untouched = false;
+      } else if (name === "sculpt_script") untouched = false;
+      const answer = await tool.run(s, given);
+      let next = "";
+      try {
+        next = journal.note(name, given, answer);
+      } catch (e) {
+        log(`notebook: ${e instanceof Error ? e.message : e}`);
+      }
+      const shown = tool.show ? tool.show(answer) : answer;
+      const out =
+        shown &&
+        typeof shown === "object" &&
+        typeof shown.text === "string" &&
+        Object.keys(shown).length === 1
+          ? { content: [{ type: "text", text: shown.text }] }
+          : present(shown, s, name.replace(/^sculpt_/, ""));
+      return {
+        ...out,
+        content: [
+          ...out.content,
+          ...notes.map((text) => ({ type: "text", text })),
+          ...(next ? [{ type: "text", text: `Next: ${next}` }] : []),
+        ],
+      };
     } catch (e) {
       const message = e instanceof Error ? e.message : String(e);
       log(`${name}: ${message.slice(0, 200)}`);
-      return { isError: true, content: [{ type: "text", text: message }] };
+      return {
+        isError: true,
+        content: [
+          { type: "text", text: message },
+          { type: "text", text: `Next: ${journal.refused(name)}` },
+        ],
+      };
     }
   });
 }
@@ -390,7 +593,7 @@ async function handle(message) {
         capabilities: { tools: {} },
         serverInfo: SERVER,
         instructions:
-          "Sculpts in the Clayground browser studio. Call sculpt_manual first (and its 'detail' and 'seeing' topics). Work in short runs with sculpt_do and look between them with `look`; use sculpt_critique to find the blank stretches, sculpt_checkpoint before a risky direction. What you make is marked as agent-made and cannot be published by this server.",
+          "Sculpts in the Clayground browser studio. Call sculpt_manual first (topic 'card' if your context is short; then 'detail' and 'seeing'). For a quick start use sculpt_recipes (vase, mug, planter, fella). Work in short runs with sculpt_do and look between them with `look`; use sculpt_critique to find the blank stretches, sculpt_checkpoint before a risky direction, and sculpt_check to see whether it prints (PASS or FAIL, one fix each). Every answer ends with a 'Next:' line: when unsure, do that. sculpt_status is the notebook: set a goal, see what was done, and after a restart pass resume: true to rebuild the sculpt. What you make is marked as agent-made and cannot be published by this server.",
       });
     }
     if (
