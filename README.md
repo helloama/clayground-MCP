@@ -6,7 +6,9 @@ An MCP server that lets an AI agent sculpt 3D clay in the [Clayground](https://w
 
 ![A psychedelic designer toy, six views](pictures/toy-sheet.jpg)
 
-Both models were sculpted by an agent through these tools. The scripts that did it are in [examples/](examples/).
+![A designer-toy figure in a hoodie with checkered sleeves, four views](pictures/figure-sheet.jpg)
+
+All three were sculpted by an agent through these tools. The scripts that did it are in [examples/](examples/).
 
 Everything an agent makes is marked `madeWith: "agent"` in the saved file. The door cannot publish to the gallery, mint anything or sign in. Clayground's gallery is for work made by hand; this is a separate door for developers and agent builders.
 
@@ -76,7 +78,7 @@ npm install
 node examples/pangolin.mjs
 ```
 
-Pictures land in `~/clayground-agent` (or `CLAYGROUND_OUT`). `examples/psychedelic-toy.mjs` builds the toy; it takes several minutes, and `STOP=2` stops after the second stage.
+Pictures land in `~/clayground-agent` (or `CLAYGROUND_OUT`). `examples/psychedelic-toy.mjs` builds the toy and `examples/designer-figure.mjs` builds the figure (eyes with half lids, a bob with coil buns, checkered sleeves, sneakers); each takes several minutes, and `STOP=2` stops after the second stage.
 
 ## Limits
 
