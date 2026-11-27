@@ -190,7 +190,7 @@ const TOOLS = [
   {
     name: "sculpt_recipes",
     description:
-      "Tested recipes that make a whole object from a few numbers: vase, mug, planter, fella (a little designer-toy character), and four characters made for the looks in sculpt_looks: grin (a glossy one-color mascot with a huge grin), balloon (an inflated strongman), goo (a sagging clay goof in candy colors) and bruiser (a tiny-headed heavyweight). With no name it lists them; with a name it shows every setting with its range, unit and default, and examples. Build one with sculpt_do: { do: 'recipe', name: 'mug', height: 0.8 }. The vase, mug, planter and fella pass the print check with their defaults, so start here, look, then change it by hand.",
+      "Tested recipes that make a whole object from a few numbers: vase, mug, planter, fella (a little designer-toy character), and five characters made for the looks in sculpt_looks: grin (a glossy one-color mascot with a huge grin), balloon (an inflated strongman), goo (a sagging clay goof in candy colors), bruiser (a tiny-headed heavyweight) and trip (a soft airbrushed creature with a bead-chain face and bubble hair). With no name it lists them; with a name it shows every setting with its range, unit and default, and examples. Build one with sculpt_do: { do: 'recipe', name: 'mug', height: 0.8 }. The vase, mug, planter and fella pass the print check with their defaults, so start here, look, then change it by hand.",
     inputSchema: {
       type: "object",
       properties: { name: { type: "string" } },
@@ -219,7 +219,7 @@ const TOOLS = [
   {
     name: "sculpt_looks",
     description:
-      "Four art directions for sculpting a character, from glossy VR-sculpted toys: grin (a one-color vinyl mascot with a huge grin), balloon (inflated pillow shapes, primary colors), goo (sagging matte clay in candy colors with one chrome trinket) and bruiser (a tiny head on a huge V of a chest under hero light). With no name it lists them; with a name it gives that look's shapes, proportions, palette rules, material, stage and concept ideas. A look is a way of working: build your own character in it with the recipe it names (sculpt_recipes), then change it by hand. Stage the pictures with sculpt_do { do: 'stage', style } and read the colors against the look with sculpt_style_check.",
+      "Five art directions for sculpting a character, from glossy VR-sculpted toys and an artist's own airbrushed toys: grin (a one-color vinyl mascot with a huge grin), balloon (inflated pillow shapes, primary colors), goo (sagging matte clay in candy colors with one chrome trinket) bruiser (a tiny head on a huge V of a chest under hero light) and trip (loud airbrushed colors, a pale egg head with tiny bead eyes, a bead chain for brows and nose, donut lips, bubble hair, tubes that loop through each other). With no name it lists them; with a name it gives that look's shapes, proportions, palette rules, material, stage and concept ideas. A look is a way of working: build your own character in it with the recipe it names (sculpt_recipes), then change it by hand. Stage the pictures with sculpt_do { do: 'stage', style } and read the colors against the look with sculpt_style_check.",
     inputSchema: {
       type: "object",
       properties: { name: { type: "string" } },
@@ -254,7 +254,10 @@ const TOOLS = [
     inputSchema: {
       type: "object",
       properties: {
-        style: { type: "string", enum: ["grin", "balloon", "goo", "bruiser"] },
+        style: {
+          type: "string",
+          enum: ["grin", "balloon", "goo", "bruiser", "trip"],
+        },
       },
       required: ["style"],
     },

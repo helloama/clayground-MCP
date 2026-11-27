@@ -54,8 +54,8 @@ The same settings can come from the environment as `CLAYGROUND_URL`, `CLAYGROUND
 | Tool                 | What it does                                                                                                                              |
 | -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- |
 | `sculpt_manual`      | The manual, by topic (`card`, `shape`, `sweep`, `layer`, `detail`, `seeing`, `recipes`, `looks`, `armature`, `craft`, `limits`, `all`).   |
-| `sculpt_recipes`     | Lists the recipes (vase, mug, planter, fella and the four looks), or shows one with every setting's range, unit and default.              |
-| `sculpt_looks`       | The four looks (`grin`, `balloon`, `goo`, `bruiser`): shapes, proportions, palette, material, stage and ideas for each.                   |
+| `sculpt_recipes`     | Lists the recipes (vase, mug, planter, fella and the five looks), or shows one with every setting's range, unit and default.              |
+| `sculpt_looks`       | The five looks (`grin`, `balloon`, `goo`, `bruiser`, `trip`): shapes, proportions, palette, material, stage and ideas for each.           |
 | `sculpt_style_check` | Reads the colors on the skin against a look and says PASS or FAIL, with one fix for each FAIL.                                            |
 | `sculpt_craft_check` | Does it look hand-sculpted or generated? Measures matching sides, lean, outline, small-scale detail and parts, with one op for each tell. |
 | `sculpt_state`       | Layers, camera, triangles, undo depth.                                                                                                    |
@@ -73,9 +73,9 @@ What the ops can do, in short: one `texture` op lays hundreds of marks (scales, 
 
 ## Looks
 
-![Four original characters, one in each look: a grinning hooded mascot, a balloon strongman, a drooping goo figure and a tiny-headed bruiser](pictures/four-looks.jpg)
+![Five original characters, one in each look: a grinning hooded mascot, a balloon strongman, a drooping goo figure, a tiny-headed bruiser and an airbrushed creature with a bead-chain face](pictures/five-looks.jpg)
 
-A look is a way of working, a set of choices about shapes, proportions, color, material and light, taken from reading glossy VR-sculpted toy scenes. It is not a character: the point is to make a new one in it, never a copy of someone else's. `sculpt_looks` lists the four; each says what to build, what to avoid, a stage to shoot it on and a few ideas for characters of your own. `{ "do": "recipe", "name": "grin" }` (or `balloon`, `goo`, `bruiser`) builds an original character in that look to start from, with every colored part (hair, head, eyes, clothes, props) on a layer of its own. `{ "do": "stage", "style": "goo" }` sets the backdrop, light and camera. `sculpt_style_check` reads the colors on the skin and says whether the look's rules hold (one dominant hue, the number of color families, enough saturation), with one fix for each failure. It reads color, not likeness; whether the character is charming is the agent's judgment of the pictures.
+A look is a way of working, a set of choices about shapes, proportions, color, material and light, taken from reading glossy VR-sculpted toy scenes and one artist's own airbrushed toys. It is not a character: the point is to make a new one in it, never a copy of someone else's. `sculpt_looks` lists the five; each says what to build, what to avoid, a stage to shoot it on and a few ideas for characters of your own. `{ "do": "recipe", "name": "grin" }` (or `balloon`, `goo`, `bruiser`, `trip`) builds an original character in that look to start from, with every colored part (hair, head, eyes, clothes, props) on a layer of its own. `{ "do": "stage", "style": "goo" }` sets the backdrop, light and camera. `sculpt_style_check` reads the colors on the skin and says whether the look's rules hold (one dominant hue, the number of color families, enough saturation), with one fix for each failure. It reads color, not likeness; whether the character is charming is the agent's judgment of the pictures.
 
 ## Working like a sculptor: spheres, bones, then detail
 
