@@ -23,6 +23,7 @@ const QUIET = new Set([
   "look",
   "camera",
   "backdrop",
+  "stage",
   "reference",
   "checkpoint",
 ]);
@@ -106,6 +107,20 @@ export function createJournal(file) {
         : "read the 'detail' and 'seeing' topics, then sculpt_recipes for a quick start or sculpt_do for your own shapes";
     if (tool === "sculpt_recipes")
       return 'sculpt_do { ops: [{ do: "recipe", name: "<one of these>", ...settings }], look: { views: ["three-quarter"] } }';
+    if (tool === "sculpt_looks")
+      return 'sculpt_do { ops: [{ do: "recipe", name: "<the look\'s recipe>" }, { do: "stage", style: "<look>" }], look: { views: ["front", "three-quarter"] } }, then change it by hand: your own character, not the recipe as it comes';
+    if (tool === "sculpt_style_check")
+      return answer?.ok
+        ? "sculpt_do { ops: [{ do: 'stage', style }] } and sculpt_look, then sculpt_check if it should print"
+        : first(
+            answer?.next ??
+              "fix the first FAIL and run sculpt_style_check again",
+            240,
+          );
+    if (tool === "sculpt_craft_check")
+      return answer?.tells?.length
+        ? first(answer.tells[0].try, 240)
+        : "look from three sides as a stranger would, then sculpt_check if it should print";
     if (tool === "sculpt_check") {
       const c = st.check;
       if (!c) return "sculpt_do to make something first";
