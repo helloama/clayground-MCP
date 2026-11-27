@@ -51,22 +51,30 @@ The same settings can come from the environment as `CLAYGROUND_URL`, `CLAYGROUND
 
 ## Tools
 
-| Tool                | What it does                                                                                                        |
-| ------------------- | ------------------------------------------------------------------------------------------------------------------- |
-| `sculpt_manual`     | The manual, by topic (`card`, `shape`, `sweep`, `layer`, `detail`, `seeing`, `recipes`, `limits`, `all`).           |
-| `sculpt_recipes`    | Lists the recipes (vase, mug, planter, fella), or shows one with every setting's range, unit and default.           |
-| `sculpt_state`      | Layers, camera, triangles, undo depth.                                                                              |
-| `sculpt_do`         | Run ops, then optionally look, in one call. A refused op names the field and the allowed range and changes nothing. |
-| `sculpt_look`       | Pictures of the clay as color, normals, depth, layers or silhouette, from any views, or closed in on a spot.        |
-| `sculpt_critique`   | Reads the surface: how much of the clay shows form at this scale, the biggest smooth stretches, and a heat map.     |
-| `sculpt_check`      | Will it print? PASS or FAIL for each question a slicer asks, with one fix and a place for each FAIL.                |
-| `sculpt_compare`    | Scores the silhouette against a picture and draws where it differs.                                                 |
-| `sculpt_checkpoint` | Keep, list or restore a named copy of the whole sculpt.                                                             |
-| `sculpt_status`     | The notebook: goal, what was done, what is left to check. After a restart, `resume: true` rebuilds the sculpt.      |
-| `sculpt_script`     | Run your own code in the page, with `clayground` in scope.                                                          |
-| `sculpt_export`     | GLB, OBJ, STL, PNG or `.clayweb` into the output folder.                                                            |
+| Tool                 | What it does                                                                                                                 |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------- |
+| `sculpt_manual`      | The manual, by topic (`card`, `shape`, `sweep`, `layer`, `detail`, `seeing`, `recipes`, `looks`, `limits`, `all`).           |
+| `sculpt_recipes`     | Lists the recipes (vase, mug, planter, fella and the four looks), or shows one with every setting's range, unit and default. |
+| `sculpt_looks`       | The four looks (`grin`, `balloon`, `goo`, `bruiser`): shapes, proportions, palette, material, stage and ideas for each.      |
+| `sculpt_style_check` | Reads the colors on the skin against a look and says PASS or FAIL, with one fix for each FAIL.                               |
+| `sculpt_state`       | Layers, camera, triangles, undo depth.                                                                                       |
+| `sculpt_do`          | Run ops, then optionally look, in one call. A refused op names the field and the allowed range and changes nothing.          |
+| `sculpt_look`        | Pictures of the clay as color, normals, depth, layers or silhouette, from any views, or closed in on a spot.                 |
+| `sculpt_critique`    | Reads the surface: how much of the clay shows form at this scale, the biggest smooth stretches, and a heat map.              |
+| `sculpt_check`       | Will it print? PASS or FAIL for each question a slicer asks, with one fix and a place for each FAIL.                         |
+| `sculpt_compare`     | Scores the silhouette against a picture and draws where it differs.                                                          |
+| `sculpt_checkpoint`  | Keep, list or restore a named copy of the whole sculpt.                                                                      |
+| `sculpt_status`      | The notebook: goal, what was done, what is left to check. After a restart, `resume: true` rebuilds the sculpt.               |
+| `sculpt_script`      | Run your own code in the page, with `clayground` in scope.                                                                   |
+| `sculpt_export`      | GLB, OBJ, STL, PNG or `.clayweb` into the output folder.                                                                     |
 
 What the ops can do, in short: one `texture` op lays hundreds of marks (scales, plates, studs, fur, wrinkles, pores) as a single undo step. `array` repeats a shape along a ring, a line, a path or over the skin. `loft` stretches fins, petals and ears. `refine` moves one part of a model to a finer layer so it can take two to four times the detail. `surface` and `nearest` tell the agent where the skin is without a picture. The whole manual is plain text at [clayvr.com/llms-full.txt](https://www.clayvr.com/llms-full.txt).
+
+## Looks
+
+![Four original characters, one in each look: a grinning hooded mascot, a balloon strongman, a drooping goo figure and a tiny-headed bruiser](pictures/four-looks.jpg)
+
+A look is a way of working, a set of choices about shapes, proportions, color, material and light, taken from reading glossy VR-sculpted toy scenes. It is not a character: the point is to make a new one in it, never a copy of someone else's. `sculpt_looks` lists the four; each says what to build, what to avoid, a stage to shoot it on and a few ideas for characters of your own. `{ "do": "recipe", "name": "grin" }` (or `balloon`, `goo`, `bruiser`) builds an original character in that look to start from, with a face on its own finer layer. `{ "do": "stage", "style": "goo" }` sets the backdrop, light and camera. `sculpt_style_check` reads the colors on the skin and says whether the look's rules hold (one dominant hue, the number of color families, enough saturation), with one fix for each failure. It reads color, not likeness; whether the character is charming is the agent's judgment of the pictures.
 
 ## Recipes, the print check and the notebook
 

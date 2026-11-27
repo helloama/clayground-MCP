@@ -35,7 +35,7 @@ import { join } from "node:path";
 import { openStudio, pictureSource, bytesOf } from "./page.mjs";
 import { createJournal } from "./journal.mjs";
 
-const SERVER = { name: "clayground-studio", version: "2.1.0" };
+const SERVER = { name: "clayground-studio", version: "2.2.0" };
 const PROTOCOLS = ["2025-06-18", "2025-03-26", "2024-11-05"];
 
 const args = process.argv.slice(2);
@@ -179,7 +179,7 @@ const TOOLS = [
   {
     name: "sculpt_manual",
     description:
-      "Read how to sculpt in the Clayground studio. Start with no topic (or 'card' if your context is short), then read 'detail' (scales, studs, fur, wrinkles, arrays, lofts) and 'seeing' (normals, critique, compare, checkpoints) before sculpting. Topics: card (a short loop for small models), coordinates, shape, sweep, spin, fill, brush, layer, detail, camera, seeing, geo, workflow, recipes, limits, all.",
+      "Read how to sculpt in the Clayground studio. Start with no topic (or 'card' if your context is short), then read 'detail' (scales, studs, fur, wrinkles, arrays, lofts) and 'seeing' (normals, critique, compare, checkpoints) before sculpting. Topics: card (a short loop for small models), coordinates, shape, sweep, spin, fill, brush, layer, detail, camera, seeing, geo, workflow, recipes, looks (four art directions for characters), limits, all.",
     inputSchema: {
       type: "object",
       properties: { topic: { type: "string" } },
@@ -190,7 +190,7 @@ const TOOLS = [
   {
     name: "sculpt_recipes",
     description:
-      "Tested recipes that make a whole object from a few numbers: vase, mug, planter, fella (a little designer-toy character). With no name it lists them; with a name it shows every setting with its range, unit and default, and examples. Build one with sculpt_do: { do: 'recipe', name: 'mug', height: 0.8 }. Each passes the print check with its defaults and examples, so start here, look, then change it by hand.",
+      "Tested recipes that make a whole object from a few numbers: vase, mug, planter, fella (a little designer-toy character), and four characters made for the looks in sculpt_looks: grin (a glossy one-color mascot with a huge grin), balloon (an inflated strongman), goo (a sagging clay goof in candy colors) and bruiser (a tiny-headed heavyweight). With no name it lists them; with a name it shows every setting with its range, unit and default, and examples. Build one with sculpt_do: { do: 'recipe', name: 'mug', height: 0.8 }. The vase, mug, planter and fella pass the print check with their defaults, so start here, look, then change it by hand.",
     inputSchema: {
       type: "object",
       properties: { name: { type: "string" } },
@@ -217,6 +217,56 @@ const TOOLS = [
     show: ({ shown }) => shown,
   },
   {
+    name: "sculpt_looks",
+    description:
+      "Four art directions for sculpting a character, from glossy VR-sculpted toys: grin (a one-color vinyl mascot with a huge grin), balloon (inflated pillow shapes, primary colors), goo (sagging matte clay in candy colors with one chrome trinket) and bruiser (a tiny head on a huge V of a chest under hero light). With no name it lists them; with a name it gives that look's shapes, proportions, palette rules, material, stage and concept ideas. A look is a way of working: build your own character in it with the recipe it names (sculpt_recipes), then change it by hand. Stage the pictures with sculpt_do { do: 'stage', style } and read the colors against the look with sculpt_style_check.",
+    inputSchema: {
+      type: "object",
+      properties: { name: { type: "string" } },
+    },
+    annotations: { readOnlyHint: true },
+    run: async (s, { name }) => {
+      const { looks } = await s.call("looks");
+      if (!name)
+        return {
+          looks,
+          shown: looks.map((l) => ({
+            name: l.name,
+            title: l.title,
+            about: l.about,
+            recipe: l.recipe,
+            ideas: l.ideas,
+          })),
+        };
+      const one = looks.find((l) => l.name === name);
+      if (!one)
+        throw new Error(
+          `"${name}" is not a look; the looks are ${looks.map((l) => l.name).join(", ")}`,
+        );
+      return { looks, shown: one };
+    },
+    show: ({ shown }) => shown,
+  },
+  {
+    name: "sculpt_style_check",
+    description:
+      "Does the clay follow a look? Reads the colors on the skin of every visible layer, in proportion to their area, and answers PASS or FAIL for the dominant color, the number of color families and the saturation, with one fix for each FAIL and the one thing to do next. Run it after the colors are blocked in and again after each fix. It reads color, not shape: judge the proportions from the pictures.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        style: { type: "string", enum: ["grin", "balloon", "goo", "bruiser"] },
+      },
+      required: ["style"],
+    },
+    annotations: { readOnlyHint: true },
+    run: (s, { style }) => s.call("styleCheck", { style }),
+    show: (a) => ({
+      text: [...(a.lines ?? []), a.stats ? JSON.stringify(a.stats) : ""]
+        .filter(Boolean)
+        .join("\n"),
+    }),
+  },
+  {
     name: "sculpt_state",
     description:
       "The layers, undo and redo counts, triangles, camera and whether the clay is still busy.",
@@ -227,7 +277,7 @@ const TOOLS = [
   {
     name: "sculpt_do",
     description:
-      "Change the sculpt with a list of operations, in order (shape, sweep, spin, fill, brush, layer, array, loft, texture, refine, recipe, camera, look, backdrop, reference, new, undo, redo, checkpoint, restore). A `recipe` op builds a whole vase, mug, planter or fella from a few settings: { do: 'recipe', name: 'vase', height: 1.2 } (sculpt_recipes lists them). Each is one undo step, except refine and recipe (several). A refused one stops the list and says which field was wrong; it changes nothing. Add `look` to get pictures after the change. Work in short runs and look between them.",
+      "Change the sculpt with a list of operations, in order (shape, sweep, spin, fill, brush, layer, array, loft, texture, refine, recipe, stage, camera, look, backdrop, reference, new, undo, redo, checkpoint, restore). A `recipe` op builds a whole vase, mug, planter, fella or character from a few settings: { do: 'recipe', name: 'vase', height: 1.2 } (sculpt_recipes lists them). A `stage` op sets the backdrop, light and camera for a look: { do: 'stage', style: 'balloon' } (sculpt_looks lists the looks). Each is one undo step, except refine and recipe (several). A refused one stops the list and says which field was wrong; it changes nothing. Add `look` to get pictures after the change. Work in short runs and look between them.",
     inputSchema: {
       type: "object",
       properties: {
@@ -593,7 +643,7 @@ async function handle(message) {
         capabilities: { tools: {} },
         serverInfo: SERVER,
         instructions:
-          "Sculpts in the Clayground browser studio. Call sculpt_manual first (topic 'card' if your context is short; then 'detail' and 'seeing'). For a quick start use sculpt_recipes (vase, mug, planter, fella). Work in short runs with sculpt_do and look between them with `look`; use sculpt_critique to find the blank stretches, sculpt_checkpoint before a risky direction, and sculpt_check to see whether it prints (PASS or FAIL, one fix each). Every answer ends with a 'Next:' line: when unsure, do that. sculpt_status is the notebook: set a goal, see what was done, and after a restart pass resume: true to rebuild the sculpt. What you make is marked as agent-made and cannot be published by this server.",
+          "Sculpts in the Clayground browser studio. Call sculpt_manual first (topic 'card' if your context is short; then 'detail' and 'seeing'). For a quick start use sculpt_recipes (vase, mug, planter, fella, and the characters grin, balloon, goo, bruiser). To sculpt a character with an art direction, read sculpt_looks, build or sketch in a look, stage it with sculpt_do { do: 'stage', style }, and read the colors with sculpt_style_check. Work in short runs with sculpt_do and look between them with `look`; use sculpt_critique to find the blank stretches, sculpt_checkpoint before a risky direction, and sculpt_check to see whether it prints (PASS or FAIL, one fix each). Every answer ends with a 'Next:' line: when unsure, do that. sculpt_status is the notebook: set a goal, see what was done, and after a restart pass resume: true to rebuild the sculpt. What you make is marked as agent-made and cannot be published by this server.",
       });
     }
     if (
