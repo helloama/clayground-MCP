@@ -267,6 +267,25 @@ const TOOLS = [
     }),
   },
   {
+    name: "sculpt_craft_check",
+    description:
+      "Does it look hand-sculpted, or generated? Measures the tells from points on the skin of every visible layer: whether the two sides match to the voxel (mirror), whether it stands as a straight stack with no lean (stack), whether its outline is one lump from every side (lump), whether the skin is equally smooth at every size (smooth), and whether one layer carries everything (one-part). It answers with the numbers, and for each tell one op to try. It is a hint, not a score: a toy meant to be even may keep its symmetry. Call it after the big forms read from three sides, fix the first tell, look, call it again. sculpt_manual topic 'craft' is how a sculptor works, in order; { do: 'armature' } blocks a figure in from spheres and bones.",
+    inputSchema: { type: "object", properties: {} },
+    annotations: { readOnlyHint: true },
+    run: (s) => s.call("craftCheck"),
+    show: (a) => ({
+      text: [
+        a.reading,
+        a.ok
+          ? `sides ${a.symmetry}, sway ${a.sway}, hunch ${a.hunch}, outline fill ${a.solidity.front}/${a.solidity.side}/${a.solidity.three} (front/side/three-quarter), fine detail ${a.detail.fine}, ${a.layers} layers (biggest ${a.share}), ${a.colors} colors`
+          : "",
+        ...(a.tells ?? []).slice(1).map((t) => `${t.id}: ${t.says} ${t.try}`),
+      ]
+        .filter(Boolean)
+        .join("\n"),
+    }),
+  },
+  {
     name: "sculpt_state",
     description:
       "The layers, undo and redo counts, triangles, camera and whether the clay is still busy.",
@@ -277,7 +296,7 @@ const TOOLS = [
   {
     name: "sculpt_do",
     description:
-      "Change the sculpt with a list of operations, in order (shape, sweep, spin, fill, brush, layer, array, loft, texture, refine, recipe, stage, camera, look, backdrop, reference, new, undo, redo, checkpoint, restore). A `recipe` op builds a whole vase, mug, planter, fella or character from a few settings: { do: 'recipe', name: 'vase', height: 1.2 } (sculpt_recipes lists them). A `stage` op sets the backdrop, light and camera for a look: { do: 'stage', style: 'balloon' } (sculpt_looks lists the looks). Each is one undo step, except refine and recipe (several). A refused one stops the list and says which field was wrong; it changes nothing. Add `look` to get pictures after the change. Work in short runs and look between them.",
+      "Change the sculpt with a list of operations, in order (shape, sweep, spin, fill, brush, layer, array, loft, texture, refine, recipe, armature, stage, camera, look, backdrop, reference, new, undo, redo, checkpoint, restore). A `recipe` op builds a whole vase, mug, planter, fella or character from a few settings: { do: 'recipe', name: 'vase', height: 1.2 } (sculpt_recipes lists them). An `armature` op blocks a figure in from spheres and bones, the way a sculptor starts one: { do: 'armature', joints: [{ id: 'chest', at: [0, 0.1, 0], r: 0.27 }, { id: 'head', at: [0, 0.5, 0.2], r: 0.2, parent: 'chest' }], lumps: 0.5, asym: 0.4 } (sculpt_manual topic 'armature'). A `stage` op sets the backdrop, light and camera for a look: { do: 'stage', style: 'balloon' } (sculpt_looks lists the looks). Each is one undo step, except refine, recipe and armature (several). A refused one stops the list and says which field was wrong; it changes nothing. Add `look` to get pictures after the change. Work in short runs and look between them.",
     inputSchema: {
       type: "object",
       properties: {
@@ -643,7 +662,7 @@ async function handle(message) {
         capabilities: { tools: {} },
         serverInfo: SERVER,
         instructions:
-          "Sculpts in the Clayground browser studio. Call sculpt_manual first (topic 'card' if your context is short; then 'detail' and 'seeing'). For a quick start use sculpt_recipes (vase, mug, planter, fella, and the characters grin, balloon, goo, bruiser). To sculpt a character with an art direction, read sculpt_looks, build or sketch in a look, stage it with sculpt_do { do: 'stage', style }, and read the colors with sculpt_style_check. Work in short runs with sculpt_do and look between them with `look`; use sculpt_critique to find the blank stretches, sculpt_checkpoint before a risky direction, and sculpt_check to see whether it prints (PASS or FAIL, one fix each). Every answer ends with a 'Next:' line: when unsure, do that. sculpt_status is the notebook: set a goal, see what was done, and after a restart pass resume: true to rebuild the sculpt. What you make is marked as agent-made and cannot be published by this server.",
+          "Sculpts in the Clayground browser studio. Call sculpt_manual first (topic 'card' if your context is short; then 'detail' and 'seeing'). For a quick start use sculpt_recipes (vase, mug, planter, fella, and the characters grin, balloon, goo, bruiser). To sculpt a character with an art direction, read sculpt_looks, build or sketch in a look, stage it with sculpt_do { do: 'stage', style }, and read the colors with sculpt_style_check. To make it look hand-sculpted and not generated, read sculpt_manual topic 'craft', block the figure in with an `armature` op (spheres joined by bones, then bigger to smaller), and run sculpt_craft_check. Work in short runs with sculpt_do and look between them with `look`; use sculpt_critique to find the blank stretches, sculpt_checkpoint before a risky direction, and sculpt_check to see whether it prints (PASS or FAIL, one fix each). Every answer ends with a 'Next:' line: when unsure, do that. sculpt_status is the notebook: set a goal, see what was done, and after a restart pass resume: true to rebuild the sculpt. What you make is marked as agent-made and cannot be published by this server.",
       });
     }
     if (

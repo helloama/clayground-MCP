@@ -117,6 +117,10 @@ export function createJournal(file) {
               "fix the first FAIL and run sculpt_style_check again",
             240,
           );
+    if (tool === "sculpt_craft_check")
+      return answer?.tells?.length
+        ? first(answer.tells[0].try, 240)
+        : "look from three sides as a stranger would, then sculpt_check if it should print";
     if (tool === "sculpt_check") {
       const c = st.check;
       if (!c) return "sculpt_do to make something first";
