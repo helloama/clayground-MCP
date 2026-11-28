@@ -2,6 +2,7 @@
   "name": "clayground-mcp",
   "version": "2.2.0",
   "description": "An MCP server that lets an AI agent sculpt 3D clay in the Clayground browser studio.",
+  "license": "MIT",
   "type": "module",
   "bin": {
     "clayground-mcp": "mcp.mjs"
@@ -12,7 +13,8 @@
     "journal.mjs",
     "examples",
     "pictures",
-    "README.md"
+    "README.md",
+    "LICENSE"
   ],
   "engines": {
     "node": ">=20"
