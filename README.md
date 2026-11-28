@@ -124,3 +124,7 @@ Pictures land in `~/clayground-agent` (or `CLAYGROUND_OUT`). `examples/psychedel
 ## Where the code comes from
 
 This repository is a copy of the bridge from the Clayground project, published so anyone can run it. The studio it drives is the live site.
+
+## License
+
+The code is MIT licensed: see [LICENSE](LICENSE). The pictures in `pictures/` are by Emotionull and are not covered by it. The Clayground name, studio and site are not licensed by this repository.
