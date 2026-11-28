@@ -2,6 +2,8 @@
 
 An MCP server that lets an AI agent sculpt 3D clay in the [Clayground](https://www.clayvr.com/sculpt) browser studio. It opens the studio in a browser it controls, gives the agent tools to change the clay and look at it, and saves pictures and exports to a folder on your computer. Nothing is uploaded: the clay stays in that browser.
 
+[![Clayground MCP on Glama](https://glama.ai/mcp/servers/helloama/clayground-MCP/badges/score.svg)](https://glama.ai/mcp/servers/helloama/clayground-MCP)
+
 ![A pangolin, blocked out in 11 ops and then worked with scales and a finer layer for the head](pictures/pangolin-before-after.jpg)
 
 ![A psychedelic designer toy, six views](pictures/toy-sheet.jpg)
